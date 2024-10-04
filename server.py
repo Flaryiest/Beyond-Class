@@ -7,20 +7,21 @@ import json
 load_dotenv() 
 
 class Database:
-    def __init__(self, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT):
+    def __init__(self, table, DB_NAME="postgres", DB_USER="postgres", DB_HOST="127.0.0.1", DB_PORT="5432"):
+        self.table = table
         self.DB_NAME = DB_NAME
         self.DB_USER = DB_USER
-        self.DB_PASSWORD = DB_PASSWORD
+        self.DB_PASSWORD = os.environ.get("DB_KEY")
         self.DB_HOST = DB_HOST
         self.DB_PORT = DB_PORT
 
         self.conn = psycopg2.connect(database=self.DB_NAME, user=self.DB_USER, password=self.DB_PASSWORD,
                                      host=self.DB_HOST, port=self.DB_PORT)
-
+        
     def create_table(self):
         with self.conn.cursor() as cur:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS user_data (
+            cur.execute(f'''
+                CREATE TABLE IF NOT EXISTS {self.table} (
                     username VARCHAR PRIMARY KEY,
                     data JSONB
                 )
@@ -29,8 +30,8 @@ class Database:
 
     def insert_data(self, username, data):
         with self.conn.cursor() as cur:
-            cur.execute('''
-                INSERT INTO user_data (username, data) VALUES (%s, %s)
+            cur.execute(f'''
+                INSERT INTO {self.table} (username, data) VALUES (%s, %s)
                 ON CONFLICT (username) DO UPDATE SET data = %s
             ''', (username, json.dumps(data), json.dumps(data)))
         self.conn.commit()
@@ -38,16 +39,27 @@ class Database:
     def get_data(self, username):
         with self.conn.cursor() as cur:
             cur.execute(
-                'SELECT data FROM user_data WHERE username = %s', (username,))
+                f'SELECT data FROM {self.table} WHERE username = %s', (username,))
             result = cur.fetchone()
             if result:
                 return result[0]
             else:
                 return None
+    
+    def get_keys(self):
+        with self.conn.cursor() as cur:
+            cur.execute(f'SELECT username FROM {self.table}')
+            return cur.fetchall()
+    
+    def get_items(self):
+        with self.conn.cursor() as cur:
+            cur.execute(f'SELECT data FROM {self.table}')
+            return cur.fetchall()
 
 class ChatGPT:
-    def __init__(self):
+    def __init__(self, database):
         self.chatgpt = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.database = database
 
     def message(self, messages):
         try:
@@ -78,8 +90,14 @@ class ChatGPT:
         else:
             print("No valid response received.")
             return None
+        
+    def generate_quiz(self, username):
+        pass
 
-chatgpt = ChatGPT()
+
+database = Database("main")
+chatgpt = ChatGPT(database)
+
 print(chatgpt.create_course("""B&M Adv
  Human resource management
 a) Introduction to human resource management
