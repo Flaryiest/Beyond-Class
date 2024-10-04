@@ -1,8 +1,9 @@
-from dotenv import load_dotenv
 import os, json
-from openai import OpenAI
 import psycopg2
 import json
+from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv() 
 
@@ -51,6 +52,12 @@ class Database:
             cur.execute(f'SELECT username FROM {self.table}')
             return cur.fetchall()
     
+    def verify(self, username):
+        for user in self.get_keys():
+            if username.lower() == user.lower():
+                return False
+        return True
+
     def get_items(self):
         with self.conn.cursor() as cur:
             cur.execute(f'SELECT data FROM {self.table}')
@@ -74,7 +81,7 @@ class ChatGPT:
 
     def create_course(self, syllabus):
         prompt = (
-            "Convert the course syllabus into the followingjson formatted {'course_name': <>, 'course_subject': <MUST BE 'english', 'social', 'economics', 'science', 'music', 'other languages', 'maths', or 'creatives'>, 'units': [{'unit_name': <>, 'unit_components': [<MUST CONTAIN ALL REQUIRED COMPONENTS>]}]}, the following is the syllabus: " + syllabus
+            "Convert the course syllabus into the following json formatted {'course_name': <>, 'course_subject': <MUST BE 'english', 'social', 'economics', 'science', 'music', 'other languages', 'maths', or 'creatives'>, 'units': [{'unit_name': <>, 'unit_components': [<MUST CONTAIN ALL REQUIRED COMPONENTS>]}]}, the following is the syllabus: " + syllabus
         )
         
         response = self.message([{"role": "user", "content": prompt}])
@@ -91,35 +98,43 @@ class ChatGPT:
             print("No valid response received.")
             return None
         
-    def generate_quiz(self, username):
-        pass
-
+    def generate_quiz(self, username, subject):
+        user_data = self.database.get_data(username)
 
 database = Database("main")
 chatgpt = ChatGPT(database)
 
-print(chatgpt.create_course("""B&M Adv
- Human resource management
-a) Introduction to human resource management
-b) Organizational structure
-c) Leadership and management
-d) Motivation and demotivation
-e) Communication
- Finance and Accounts
-a) Introduction to finance
-b) Sources of finance
-c) Costs and revenues
-d) Final accounts
-e) Profitability and liquidity ratio analysis
-f) Cash flow
-g) Investment appraisel
- Marketing
-a) Introduction to marketing
-b) Marketing planning
-c) Market research
-d) The 7 P’s of the marketing mix
- Operations Management
-a) Introduction to operations management
-b) Operations methods
-c) Location
-d) Break-even analysis"""))
+app = Flask(__name__)
+
+@app.route('/register', methods=['GET'])
+def register():
+    username = request.json.get("username")
+    if database.verify(username):
+        database.insert_data(username, {"courses": {}})
+
+if __name__ == "__main__":
+    print(chatgpt.create_course("""B&M Adv
+     Human resource management
+    a) Introduction to human resource management
+    b) Organizational structure
+    c) Leadership and management
+    d) Motivation and demotivation
+    e) Communication
+     Finance and Accounts
+    a) Introduction to finance
+    b) Sources of finance
+    c) Costs and revenues
+    d) Final accounts
+    e) Profitability and liquidity ratio analysis
+    f) Cash flow
+    g) Investment appraisel
+     Marketing
+    a) Introduction to marketing
+    b) Marketing planning
+    c) Market research
+    d) The 7 P’s of the marketing mix
+     Operations Management
+    a) Introduction to operations management
+    b) Operations methods
+    c) Location
+    d) Break-even analysis"""))
