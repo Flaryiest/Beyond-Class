@@ -1,0 +1,69 @@
+.scheduler-container {
+    width: 50%;
+    margin: 40px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #ffffff;
+    font-family: "Poppins";
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.scheduler-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.submit-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: "Poppins";
+}
+
+.submit-button:hover {
+    background-color: #0056b3;
+}
+
+.date-selector {
+    font-family: "Poppins";
+}
+
+.scheduler-label {
+    color: rgb(51, 51, 51);
+}
+
+.scheduler-header {
+    font-family: "Poppins-bold";
+    font-size: 20px;
+}
+
+.scheduler-subheader {
+    font-family: "Poppins-bold";
+    margin-top: 20px;
+    color: rgb(51, 51, 51);
+}
+
