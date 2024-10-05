@@ -1,0 +1,58 @@
+.navBar {
+    display: flex;
+    max-width: 100dvw;
+    justify-content: space-between;
+    padding-left: 10dvw;
+    padding-right: 10dvw;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    color: var(--main-text-color);
+    backdrop-filter: blur(10px);
+    background-color: var(--main-background-color);
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 4px 20px 0px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navLinks {
+    display: flex;
+    gap: 48px;
+}
+
+ul {
+    list-style-type: none;
+}
+
+Link {
+    color: var(--main-text-color);
+    text-decoration: none;
+}
+a {
+    color: var(--main-text-color);
+    text-decoration: none;
+}
+
+
+.animated {
+    background: radial-gradient(
+      circle at 100%,
+      #ff0aeb,
+      #ad00bd 50%,
+      #be006f 75%,
+      #70005d 75%
+    );
+    font-weight: 600;
+    background-size: 200% auto;
+    color: #000;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: animatedTextGradient 1.5s linear infinite;
+  }
+  
+  @keyframes animatedTextGradient {
+    to {
+      background-position: 200% center;
+    }
+  }
