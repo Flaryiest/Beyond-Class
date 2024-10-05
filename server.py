@@ -159,9 +159,13 @@ def get_courses(username):
 
 @app.route("/register", methods=["GET"])
 def register():
-    username = request.json.get("username")
+    data = request.get_json(force=True)
+
+    username = data['username']
     if database.verify(username):
         database.insert_data(username, {"courses": {}, "password": "", "salt": ""})
+
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run("127.0.0.1", 80)
