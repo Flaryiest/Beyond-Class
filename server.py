@@ -106,9 +106,11 @@ chatgpt = ChatGPT(database)
 
 app = Flask(__name__)
 
-@app.route('/register', methods=['GET'])
+@app.route('/register', methods=['POST'])
 def register():
-    username = request.json.get("username")
+    data = request.get_json(force=True)
+
+    username = data['username']
     if database.verify(username):
         database.insert_data(username, {"courses": {}})
 
