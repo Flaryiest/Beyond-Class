@@ -3,6 +3,7 @@ from math import ceil
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
+import hashlib
 
 load_dotenv() 
 
@@ -157,15 +158,35 @@ def get_courses(username):
 
     return jsonify(database.get_data(username)["courses"])
 
-@app.route("/register", methods=["GET"])
+@app.route("/register", methods=["POST"])
 def register():
     data = request.get_json(force=True)
 
-    username = data['username']
-    if database.verify(username):
-        database.insert_data(username, {"courses": {}, "password": "", "salt": ""})
+    """
+    Client JSON Data to send:
+    {
+        username: str # the username of the user
+        password: str # the password of the user. ideally, should also be hashed by the client 
+    }
+    """
 
-    return jsonify({"success": True})
+    # Check if the data is correct
+    if not ('username' in data and 'password' in data):
+        return jsonify({"success": False, "reason": "Invaild JSON data"})
+ 
+    username = data['username']
+    password = data['password']
+
+    # Hash the password
+    password = hashlib.sha256(password).hexdigest()
+
+    if database.verify(username):
+        database.insert_data(username, {"courses": {}, "password": password, "salt": os.environ.get("SALT")})
+
+        return jsonify({"success": True})
+    
+    else:
+        return jsonify({"success": False, "reason": "Username is already registered in the database!"})
 
 if __name__ == "__main__":
-    app.run("127.0.0.1", 80)
+    app.run("127.0.0.1", 80, threaded=True)
