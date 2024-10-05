@@ -114,7 +114,10 @@ def register():
     if database.verify(username):
         database.insert_data(username, {"courses": {}})
 
+    return jsonify({"success": True})
+
 if __name__ == "__main__":
+
     print(chatgpt.create_course("""B&M Adv
      Human resource management
     a) Introduction to human resource management
