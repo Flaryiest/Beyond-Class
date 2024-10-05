@@ -30,8 +30,9 @@ def send_email(recipient, key):
                 <h1>BeyondClass - Register</h1>
                 <p>Hello! Click the link below to register your account!</p><br>
                 <p>If this was not you, please close this email.</p><br>
-            <a style="padding: 10px; border-radius: 0; background-color: white; border-style: solid; color: #000; text-decoration: none;" href="http://184.64.116.12:3333/verify?code={key}">Click here to register</a>
-            </p>
+                <a style="padding: 10px; border-radius: 0; background-color: white; border-style: solid; color: #000; text-decoration: none;" href="http://184.64.116.12:3333/verify?code={key}">Click here to register</a>
+            </div>
+        </div>
         </body>
         </html>
         """
@@ -39,14 +40,14 @@ def send_email(recipient, key):
         
         msg['Subject'] = "BeyondClass email verification"
         msg['From'] = EMAIL
-        msg['To'] = ', '.join([recipient])
+        msg['To'] = recipient
 
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
             smtp_server.login(EMAIL, PASSWORD)
             smtp_server.sendmail(EMAIL, [recipient], msg.as_string())
 
         return True
-    except Exception:
+    except Exception: #there is a lot of exceptions without specific errors in this file, may be a - score for us (bad programming)
         return False
 
 class Database:
@@ -331,8 +332,16 @@ def create_course(type):
 @app.route("/create/unit", methods=["POST"])
 def create_unit(type):
     data = request.get_json(force=True)
-    username, token, course, unit, lesson = [data[i] for i in ["username", "token", "course", "unit", "lesson"]]
 
+    dataKeys = ["username", "token", "course", "unit", "lesson"]
+
+    # Check if the request is valid
+    for key in dataKeys:
+        if key not in data:
+            return jsonify({"success": False, "reason": "Invaild JSON data"})
+
+
+    username, token, course, unit, lesson = [data[i] for i in dataKeys]
     if not database.check_token(username, token):
         return jsonify({"success": False, "reason": "invalid token"})
     if type == "course":
@@ -341,6 +350,7 @@ def create_unit(type):
             return {"success": False, "reason": "unit already exists"}
         else:
             user_data["courses"][course]["units"][unit] = {"unit_components": lesson}
+            return jsonify({"success": True})
 
 @app.route("/generate/exam", methods=["GET"])
 def generate_exam():
@@ -370,7 +380,7 @@ def generate_unit():
 
         return jsonify({"success": True})
     except Exception:
-            return jsonify({"success": False})
+        return jsonify({"success": False})
 
 if __name__ == "__main__":
     app.run("10.0.0.250", 3333, threaded=True)
