@@ -7,7 +7,8 @@ const [formData, setFormData] = useState({
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     lesson: '',
-    unit: ''
+    unit: '',
+    class: ''
 })
 
 const handleChange = (e) => {
@@ -28,7 +29,7 @@ const handleSubmit = async (e) => {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({userID: params.userID, startDate: formData.startDate, endDate: formData.endDate, Lesson: formData.lesson, Unit: formData.unit}),
+        body: JSON.stringify({userID: params.userID, startDate: formData.startDate, endDate: formData.endDate, Lesson: formData.lesson, Unit: formData.unit, class: formData.class}),
     })
 }
 
@@ -36,6 +37,40 @@ return (
     <div className="scheduler-container">
         <form className="scheduler-form" onSubmit={handleSubmit}>
             <h2 className="scheduler-header">Schedule</h2>
+            <div className="form-group">
+                <label className="scheduler-label bold" htmlFor="class">Class*</label>
+                <input
+                    type="text"
+                    id="class"
+                    name="class"
+                    value={formData.class}
+                    onChange={handleChange}
+                    required
+                />
+            </div>
+            <div className="form-group">
+                <label className="scheduler-label bold" htmlFor="unit">Unit*</label>
+                <input
+                    type="text"
+                    id="unit"
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleChange}
+                    required
+                />
+            </div>
+            <div className="form-group">
+            <label className="scheduler-label" htmlFor="lesson">Lesson</label>
+            <input
+                type="text"
+                id="lesson"
+                name="lesson"
+                value={formData.lesson}
+                onChange={handleChange}
+                required
+            />
+            </div>
+
             <div className="form-group">
             <label className="scheduler-label" htmlFor="startDate">Start Date*</label>
             <input
@@ -60,28 +95,7 @@ return (
                 className="date-selector"
             />
             </div>
-            <div className="form-group">
-            <label className="scheduler-label" htmlFor="unit">Unit*</label>
-            <input
-                type="text"
-                id="unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                required
-            />
-            </div>
-            <div className="form-group">
-            <label className="scheduler-label" htmlFor="lesson">Lesson</label>
-            <input
-                type="text"
-                id="lesson"
-                name="lesson"
-                value={formData.lesson}
-                onChange={handleChange}
-                required
-            />
-            </div>
+            
             
             <button type="submit" className="submit-button">Submit</button>
         </form>

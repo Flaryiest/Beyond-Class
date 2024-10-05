@@ -6,9 +6,9 @@ import Demo from "./pages/Demo"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
 import Dashboard from "./pages/Dashboard"
-import Units from "./pages/Units"
+import Classes from "./pages/Classes"
 import Test from "./pages/Test"
-import Answers from "./pages/Answers"
+import TestResults from "./pages/TestResults"
 import Schedule from "./pages/Schedule"
 import Profile from "./pages/Profile"
 
@@ -26,11 +26,11 @@ function Routes() {
 
       <Route element={<UserLayout />}>
         <Route path="user/:userID" element={<Dashboard/>} />
-        <Route path="user/:userID/units" element={<Units />} />
+        <Route path="user/:userID/classes" element={<Classes />} />
         <Route path="user/:userID/schedule" element={<Schedule />} />
         <Route path="user/:userID/profile" element={<Profile />} />
         <Route path="user/:userID/test/:testID" element={<Test />} />
-        <Route path="user/:userID/test/:testID/answers" element={<Answers />} />
+        <Route path="user/:userID/test/:testID/answers" element={<TestResults />} />
 
       </Route>
 

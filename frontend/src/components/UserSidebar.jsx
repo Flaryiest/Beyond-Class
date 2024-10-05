@@ -21,7 +21,7 @@ const UserSidebar = () => {
                         </Link>
                     </li>
                     <li>
-                        <Link to={"/user/" + params.userID + "/units"} className="sidebar-link">
+                        <Link to={"/user/" + params.userID + "/classes"} className="sidebar-link">
                             <div className="menu-item-left">
                                 <img className="icon" src="/assets/units.svg" alt="Units" />
                                 <div className="section-header-small">My Classes</div>
