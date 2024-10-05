@@ -168,4 +168,4 @@ def register():
     return jsonify({"success": True})
 
 if __name__ == "__main__":
-    app.run("127.0.0.1", 80)
+    app.run("10.0.0.250", 3333)
