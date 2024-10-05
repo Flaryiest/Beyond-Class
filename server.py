@@ -2,13 +2,14 @@ import os, json, psycopg2, time, random, uuid, hashlib, smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from math import ceil
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from dotenv import load_dotenv
 from openai import OpenAI
+from flask_cors import CORS
 
 load_dotenv() 
 
-EMAIL, PASSWORD = [os.environ.get(i) for i in ["EMAIL", "PASSWORD"]]
+EMAIL, PASSWORD = [os.environ.get(i) for i in ["EMAIL", "EMAIL_PASSWORD"]]
 
 def get_base(email):
     local_part, domain = email.split('@')
@@ -49,11 +50,11 @@ def send_email(recipient, key):
         return False
 
 class Database:
-    def __init__(self, table, DB_NAME="postgres", DB_USER="postgres", DB_HOST="127.0.0.1", DB_PORT="5432"):
+    def __init__(self, table, DB_NAME="railway", DB_USER="postgres", DB_HOST="junction.proxy.rlwy.net", DB_PORT="42906"):
         self.table = table
         self.DB_NAME = DB_NAME
         self.DB_USER = DB_USER
-        self.DB_PASSWORD = os.environ.get("DB_KEY")
+        self.DB_PASSWORD = os.environ.get("PASSWORD")
         self.DB_HOST = DB_HOST
         self.DB_PORT = DB_PORT
 
@@ -220,12 +221,16 @@ class ChatGPT:
 
 database = Database("main")
 database.create_table()
+'''
 tokens = Database("token")
-tokens.create_table()
+tokens.create_table()'''
 
 chatgpt = ChatGPT(database)
 
 app = Flask(__name__)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+CORS(app, supports_credentials=True)
 
 @app.route("/get_courses", methods=["GET"])
 def get_courses(username):
@@ -234,7 +239,6 @@ def get_courses(username):
     {
         username: str # the username of the user
         token:str # given token from login
-        password: str # the password of the user. ideally, should also be hashed by the client 
     }
     """
     data = request.get_json(force=True)
@@ -242,11 +246,6 @@ def get_courses(username):
 
     if not database.check_token(username, token):
         return jsonify({"success": False, "reason": "invalid token"})
-
-    courses = []
-    user_data = database.get_data(username)["courses"]
-    for course in user_data:
-        courses.append({"course": course, "subject": user_data[course]["course_subject"]})
 
     return jsonify(database.get_data(username)["courses"])
 
@@ -261,16 +260,7 @@ def n_users():
 def register():
     data = request.get_json(force=True)
 
-    """
-    Client JSON:
-    {
-        username: str # the username of the user
-        email:str # email for verification
-        password: str # the password of the user. ideally, should also be hashed by the client 
-    }
-    """
-
-    if not ('username' in data and 'password' in data and 'token' in data):
+    if not ('username' in data and 'password' in data and 'email' in data):
         return jsonify({"success": False, "reason": "Invaild JSON data"})
 
     username, password, email = [data[i] for i in ["username", "password", "email"]]
@@ -278,27 +268,24 @@ def register():
     salt = hashlib.sha512(random.randbytes(64)).hexdigest()
     password = hashlib.sha256(bytes(password + salt, 'utf-8')).hexdigest()
 
-    if database.verify(username):
-        token = hashlib.sha512(random.randbytes(64)).hexdigest()
-        tokens.insert_data(token, {"username": username, "password": password, "salt": salt, "email": email})
-        
-        send_email(email, token)
-
+    if database.verify(username) and database.check_email(get_base(email)):
+        database.insert_data(username, {"courses": {}, "password": password, "salt": salt, "token": "", "email": email, "streak": 0, "solved": 0, "correct": 0})
         return jsonify({"success": True})
-    
     else:
-        return jsonify({"success": False, "reason": "Username is already registered in the database!"})
-
-@app.route("/verify", methods=["POST"])
+        return jsonify({"success": False, "reason": "username or email already exists"})
+'''
+@app.route("/verify", methods=["GET"])
 def verify():
     try:
-        token = request.get_json(force=True)["token"]
+        token = request.args["code"]
         if token in tokens.get_keys():
             user_data = tokens.get_data(token)
             database.insert_data(user_data["username"], {"courses": {}, "password": user_data["password"], "salt": user_data["salt"], "token": "", "email": user_data["email"]})
             return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "reason": f"invalid code: {token}"})
     except Exception:
-        return jsonify({"success": False})
+        return jsonify({"success": False})'''
 
 @app.route('/login', methods=["POST"])
 def login():
@@ -311,8 +298,8 @@ def login():
         if not ('username' in data and 'password' in data):
             return jsonify({"success": False, "reason": "Invaild JSON data"})
 
-        user_data = database.get_data(username)
         username = data['username']
+        user_data = database.get_data(username)
 
         if user_data['password'] == hashlib.sha256(bytes(data['password'] + user_data['salt'], 'utf-8')).hexdigest():
             token = hashlib.sha512(random.randbytes(64)).hexdigest()
@@ -328,10 +315,11 @@ def login():
 @app.route("/create/course", methods=["POST"])
 def create_course(type):
     data = request.get_json(force=True)
-    username, token, course = [data[i] for i in ["username", "token", "course"]]
+    username, course, token = [data[i] for i in ["username", "course", "token"]]
 
     if not database.check_token(username, token):
-        return jsonify({"success": False, "reason": "invalid token"})
+        return jsonify({"success": False, "message": "Invalid token"}), 400
+
     if type == "course":
         user_data = database.get_data(username)
         if course in list(user_data["courses"].keys()):
@@ -341,7 +329,7 @@ def create_course(type):
             database.insert_data(username, user_data)
 
 @app.route("/create/unit", methods=["POST"])
-def create_course(type):
+def create_unit(type):
     data = request.get_json(force=True)
     username, token, course, unit, lesson = [data[i] for i in ["username", "token", "course", "unit", "lesson"]]
 
@@ -354,7 +342,7 @@ def create_course(type):
         else:
             user_data["courses"][course]["units"][unit] = {"unit_components": lesson}
 
-@app.route("/generate/exam")
+@app.route("/generate/exam", methods=["GET"])
 def generate_exam():
     try:
         data = request.get_json(force=True)
@@ -370,10 +358,10 @@ def generate_exam():
         return jsonify({"success": False})
 
 @app.route("/generate/unit", methods=["GET"])
-def generate():
+def generate_unit():
     try:
         data = request.get_json(force=True)
-        username, token, course, unit = [data[i] for i in ["username", "token", "course", "startDate", "endDate", "lesson", "unit"]]
+        username, token, course, unit = [data[i] for i in ["username", "token", "course", "unit"]]
 
         if not database.check_token(username, token):
             return jsonify({"success": False, "reason": "invalid token"})
@@ -385,4 +373,4 @@ def generate():
             return jsonify({"success": False})
 
 if __name__ == "__main__":
-    app.run("10.0.0.250", 3333)
+    app.run("10.0.0.250", 3333, threaded=True)
