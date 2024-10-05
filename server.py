@@ -1,6 +1,5 @@
-import os, json
-import psycopg2
-import json
+import os, json, psycopg2, time
+from math import ceil
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -79,9 +78,9 @@ class ChatGPT:
             print(f"Error during API call: {e}")
             return None
 
-    def create_course(self, syllabus):
+    def create_course(self, username, syllabus):
         prompt = (
-            "Convert the course syllabus into the following json formatted {'course_name': <>, 'course_subject': <MUST BE 'english', 'social', 'economics', 'science', 'music', 'other languages', 'maths', or 'creatives'>, 'units': [{'unit_name': <>, 'unit_components': [<MUST CONTAIN ALL REQUIRED COMPONENTS>]}]}, the following is the syllabus: " + syllabus
+            'Convert the course syllabus into the following json formatted {"course_name": <>, "course_subject": <MUST BE "english", "social", "economics", "science", "music", "other languages", "maths", or "creatives">, "units": [{"unit_name": <>, "unit_components": [<MUST CONTAIN ALL REQUIRED COMPONENTS>]}]}, the following is the syllabus: ' + syllabus
         )
         
         response = self.message([{"role": "user", "content": prompt}])
@@ -89,8 +88,14 @@ class ChatGPT:
         if response and response.choices:
             try:
                 content = response.choices[0].message.content
-                course_dict = json.loads(content)
-                return course_dict
+                course = json.loads(content)
+                course["quizzes"] = {}
+
+                user_data = self.database.get_data(username)
+                user_data["courses"][course["course_name"]] = course
+                self.database.insert_data(username, user_data)
+                return course
+            
             except json.JSONDecodeError:
                 print("Failed to decode JSON response.")
                 return None
@@ -98,43 +103,65 @@ class ChatGPT:
             print("No valid response received.")
             return None
         
-    def generate_quiz(self, username, subject):
+    def generate_quiz(self, username, course):
+        try:
+            content = self.database.get_data(username)["courses"][course]
+            quiz = []
+            for unit in content["units"]:
+                prompt = (
+                    "Create a difficult multiple choice question in the following json format {'question': <>, 'answers': ['<answer A>', '<answer B>', '<answer C>', '<answer D>'], 'correct': '<A, B, C, or D>'}. "
+                    + f"The following is the content to test: unit name: {unit['unit_name']}, topics to be tested for: {', '.join(unit['unit_components'])}."
+                )
+
+                response = self.message([{"role": "user", "content": prompt}]).choices[0].message.content
+                
+                try:
+                    quiz.append(json.loads(response))
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error: {e}")
+                    print(f"Response content: {response}")
+
+            return quiz
+
+        except KeyError:
+            return None
+
+
+    def generate_quizzes(self, username, course, epoch):
+        days = ceil((epoch - time.time()) / 86400)
+        quizzes = {}
+        for day in range(days):
+            quizzes[day] = self.generate_quiz(username, course)
+        
         user_data = self.database.get_data(username)
+        user_data["courses"][course]["quizzes"] = quizzes
+        print(user_data)
+        self.database.insert_data(username, user_data)
+
+        return quizzes
+
 
 database = Database("main")
+database.create_table()
+
 chatgpt = ChatGPT(database)
 
 app = Flask(__name__)
 
-@app.route('/register', methods=['GET'])
+@app.route("/get_courses/<username>", methods=["GET"])
+def get_courses(username):
+    courses = []
+    user_data = database.get_data(username)["courses"]
+    for course in user_data:
+        courses.append({"course": course, "subject": user_data[course]["course_subject"]})
+
+    return jsonify(database.get_data(username)["courses"])
+
+@app.route("/register", methods=["GET"])
 def register():
     username = request.json.get("username")
     if database.verify(username):
-        database.insert_data(username, {"courses": {}})
+        database.insert_data(username, {"courses": {}, "password": "", "salt": ""})
 
 if __name__ == "__main__":
-    print(chatgpt.create_course("""B&M Adv
-     Human resource management
-    a) Introduction to human resource management
-    b) Organizational structure
-    c) Leadership and management
-    d) Motivation and demotivation
-    e) Communication
-     Finance and Accounts
-    a) Introduction to finance
-    b) Sources of finance
-    c) Costs and revenues
-    d) Final accounts
-    e) Profitability and liquidity ratio analysis
-    f) Cash flow
-    g) Investment appraisel
-     Marketing
-    a) Introduction to marketing
-    b) Marketing planning
-    c) Market research
-    d) The 7 P’s of the marketing mix
-     Operations Management
-    a) Introduction to operations management
-    b) Operations methods
-    c) Location
-    d) Break-even analysis"""))
+    app.run("127.0.0.1", 80)
