@@ -1,10 +1,13 @@
-import os, json, psycopg2, time
+import os, json, psycopg2, time, random
 from math import ceil
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
+import hashlib
 
 load_dotenv() 
+
+DB_HOST = "127.0.0.1"
 
 class Database:
     def __init__(self, table, DB_NAME="postgres", DB_USER="postgres", DB_HOST="127.0.0.1", DB_PORT="5432"):
@@ -141,7 +144,7 @@ class ChatGPT:
         return quizzes
 
 
-database = Database("main")
+database = Database("main", DB_HOST=DB_HOST)
 database.create_table()
 
 chatgpt = ChatGPT(database)
@@ -157,15 +160,69 @@ def get_courses(username):
 
     return jsonify(database.get_data(username)["courses"])
 
-@app.route("/register", methods=["GET"])
+@app.route("/register", methods=["POST"])
 def register():
     data = request.get_json(force=True)
 
-    username = data['username']
-    if database.verify(username):
-        database.insert_data(username, {"courses": {}, "password": "", "salt": ""})
+    """
+    Client JSON Data to send:
+    {
+        username: str # the username of the user
+        password: str # the password of the user. ideally, should also be hashed by the client 
+    }
+    """
 
-    return jsonify({"success": True})
+    # Check if the data is correct
+    if not ('username' in data and 'password' in data):
+        return jsonify({"success": False, "reason": "Invaild JSON data"})
+ 
+    username = data['username']
+    password = data['password']
+
+    # Hash the password
+    salt = hashlib.sha512(random.randbytes(64)).hexdigest()
+
+    password = hashlib.sha256(bytes(password + salt, 'utf-8')).hexdigest()
+
+    if database.verify(username):
+        database.insert_data(username, {"courses": {}, "password": password, "salt": salt})
+
+        return jsonify({"success": True})
+    
+    else:
+        return jsonify({"success": False, "reason": "Username is already registered in the database!"})
+
+@app.route('/login', methods=["POST"])
+def login():
+    # GET method should return a login page
+
+    if request.method == "POST":
+        data = request.get_json(force=True)
+
+        # Check if data is correct
+        if not ('username' in data and 'password' in data):
+            return jsonify({"success": False, "reason": "Invaild JSON data"})
+
+
+        userData = database.get_data(username)
+
+        # Hash the password
+        password = hashlib.sha256(bytes(data['password'] + userData['salt'], 'utf-8')).hexdigest()
+
+        username = data['username']
+
+        # Verify Password. you should create a function in the DB
+        correctPassword = userData['password']
+
+        if correctPassword == password:
+            """some login thing like a session token or wutever."""
+
+            return jsonify({"success": True, })
+
+        else:
+            return jsonify({"success": False, "reason": "Incorrect password!"})
+
+
 
 if __name__ == "__main__":
     app.run("10.0.0.250", 3333)
