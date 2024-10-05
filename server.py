@@ -8,7 +8,6 @@ from openai import OpenAI
 
 load_dotenv() 
 
-tokens = {}
 EMAIL, PASSWORD = [os.environ.get(i) for i in ["EMAIL", "PASSWORD"]]
 
 def get_base(email):
@@ -37,7 +36,7 @@ def send_email(recipient, key):
         """
         msg.attach(MIMEText(html, 'html'))
         
-        msg['Subject'] = "TinyDrive farmer confirmation"
+        msg['Subject'] = "BeyondClass email verification"
         msg['From'] = EMAIL
         msg['To'] = ', '.join([recipient])
 
@@ -115,6 +114,12 @@ class Database:
             return True
         else:
             return False
+        
+    def check_email(self, email):
+        for item in self.get_items():
+            if item["email"] == email:
+                return False
+        return True
 
 class ChatGPT:
     def __init__(self, database):
@@ -132,9 +137,10 @@ class ChatGPT:
             print(f"Error during API call: {e}")
             return None
 
+    '''
     def create_course(self, username, syllabus):
         prompt = (
-            'Convert the course syllabus into the following json formatted {"course_name": <>, "course_subject": <MUST BE "english", "social", "economics", "science", "music", "other languages", "maths", or "creatives">, "units": [{"unit_name": <>, "unit_components": [<MUST CONTAIN ALL REQUIRED COMPONENTS>]}]}, the following is the syllabus: ' + syllabus
+            'Convert the course syllabus into the following json formatted {"course_name": <>, "course_subject": <MUST BE "english", "social", "economics", "science", "music", "other languages", "maths", or "creatives">, "units": {"unit_name": <>: {"unit_components": {<MUST CONTAIN ALL REQUIRED COMPONENTS>]}}}, the following is the syllabus: ' + syllabus
         )
         
         response = self.message([{"role": "user", "content": prompt}])
@@ -156,32 +162,50 @@ class ChatGPT:
         else:
             print("No valid response received.")
             return None
+    '''
+    
+    def generate_quiz(self, unit):
+        quiz = []
+        for i in range(0, 5):
+            prompt = (
+                            'Create a challenging multiple choice question in the following json format {"question": <>, "answers": {1: "<answer A>", 2: "<answer B>", 3:"<answer C>", 4: "<answer D>"}, "correct": "<A, B, C, or D>"}. '
+                            + f"The following is the content to test: unit name: {unit['unit_name']}, topics to be tested for: {str(unit['unit_components'])}."
+                        )
+
+            response = self.message([{"role": "user", "content": prompt}]).choices[0].message.content
+            
+            try:
+                quiz.append(json.loads(response))
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Response content: {response}")
         
-    def generate_quiz(self, username, course):
+        return quiz
+
+
+    def generate_exam(self, username, course):
         try:
             content = self.database.get_data(username)["courses"][course]
             quiz = []
             for unit in content["units"]:
-                prompt = (
-                    "Create a difficult multiple choice question in the following json format {'question': <>, 'answers': ['<answer A>', '<answer B>', '<answer C>', '<answer D>'], 'correct': '<A, B, C, or D>'}. "
-                    + f"The following is the content to test: unit name: {unit['unit_name']}, topics to be tested for: {', '.join(unit['unit_components'])}."
-                )
-
-                response = self.message([{"role": "user", "content": prompt}]).choices[0].message.content
-                
-                try:
-                    quiz.append(json.loads(response))
-                except json.JSONDecodeError as e:
-                    print(f"JSON decode error: {e}")
-                    print(f"Response content: {response}")
-
+                for i in range(0, 5):
+                    self.generate_quiz(username, course, unit)
             return quiz
 
         except KeyError:
             return None
+        
+    def generate_unit_quiz(self, username, course, unit):
+        try:
+            quiz = []
+            for i in range(0, 5):
+                quiz.append(self.generate_quiz(username, course, self.database.get_data(username)["courses"][course]["units"][unit]))
+            return quiz
+        except KeyError:
+            return None
 
-    def generate_quizzes(self, username, course, epoch):
-        days = ceil((epoch - time.time()) / 86400)
+    '''def generate_quizzes(self, username, course, start_epoch, end_epoch):
+        days = ceil((end_epoch - start_epoch) / 86400)
         quizzes = {}
         for day in range(days):
             quizzes[day] = self.generate_quiz(username, course)
@@ -191,11 +215,13 @@ class ChatGPT:
         print(user_data)
         self.database.insert_data(username, user_data)
 
-        return quizzes
+        return quizzes'''
 
 
 database = Database("main")
 database.create_table()
+tokens = Database("token")
+tokens.create_table()
 
 chatgpt = ChatGPT(database)
 
@@ -244,20 +270,17 @@ def register():
     }
     """
 
-    # Check if the data is correct
     if not ('username' in data and 'password' in data and 'token' in data):
         return jsonify({"success": False, "reason": "Invaild JSON data"})
- 
+
     username, password, email = [data[i] for i in ["username", "password", "email"]]
 
-    # Hash the password
     salt = hashlib.sha512(random.randbytes(64)).hexdigest()
-
     password = hashlib.sha256(bytes(password + salt, 'utf-8')).hexdigest()
 
     if database.verify(username):
         token = hashlib.sha512(random.randbytes(64)).hexdigest()
-        tokens[token] = {"username": username, "password": password, "salt": salt}
+        tokens.insert_data(token, {"username": username, "password": password, "salt": salt, "email": email})
         
         send_email(email, token)
 
@@ -268,9 +291,14 @@ def register():
 
 @app.route("/verify", methods=["POST"])
 def verify():
-    token = request.get_json(force=True)["token"]
-    if token in tokens:
-        database.insert_data(tokens[token]["username"], {"courses": {}, "password": tokens[token]["password"], "salt": tokens[token]["salt"], "token": ""})
+    try:
+        token = request.get_json(force=True)["token"]
+        if token in tokens.get_keys():
+            user_data = tokens.get_data(token)
+            database.insert_data(user_data["username"], {"courses": {}, "password": user_data["password"], "salt": user_data["salt"], "token": "", "email": user_data["email"]})
+            return jsonify({"success": True})
+    except Exception:
+        return jsonify({"success": False})
 
 @app.route('/login', methods=["POST"])
 def login():
@@ -297,7 +325,64 @@ def login():
         else:
             return jsonify({"success": False, "reason": "Incorrect password!"})
 
+@app.route("/create/course", methods=["POST"])
+def create_course(type):
+    data = request.get_json(force=True)
+    username, token, course = [data[i] for i in ["username", "token", "course"]]
 
+    if not database.check_token(username, token):
+        return jsonify({"success": False, "reason": "invalid token"})
+    if type == "course":
+        user_data = database.get_data(username)
+        if course in list(user_data["courses"].keys()):
+            return {"success": False, "reason": "course already exists"}
+        else:
+            user_data["courses"][course] = {"units": {}}
+            database.insert_data(username, user_data)
+
+@app.route("/create/unit", methods=["POST"])
+def create_course(type):
+    data = request.get_json(force=True)
+    username, token, course, unit, lesson = [data[i] for i in ["username", "token", "course", "unit", "lesson"]]
+
+    if not database.check_token(username, token):
+        return jsonify({"success": False, "reason": "invalid token"})
+    if type == "course":
+        user_data = database.get_data(username)
+        if unit in list(user_data[course]["units"].keys()):
+            return {"success": False, "reason": "unit already exists"}
+        else:
+            user_data["courses"][course]["units"][unit] = {"unit_components": lesson}
+
+@app.route("/generate/exam")
+def generate_exam():
+    try:
+        data = request.get_json(force=True)
+        username, token, course = [data[i] for i in ["username", "token", "course"]]
+
+        if not database.check_token(username, token):
+            return jsonify({"success": False, "reason": "invalid token"})
+        
+        chatgpt.generate_exam(username, course)
+
+        return jsonify({"success": True})
+    except Exception:
+        return jsonify({"success": False})
+
+@app.route("/generate/unit", methods=["GET"])
+def generate():
+    try:
+        data = request.get_json(force=True)
+        username, token, course, unit = [data[i] for i in ["username", "token", "course", "startDate", "endDate", "lesson", "unit"]]
+
+        if not database.check_token(username, token):
+            return jsonify({"success": False, "reason": "invalid token"})
+        
+        chatgpt.generate_unit_quiz(username, course, unit)
+
+        return jsonify({"success": True})
+    except Exception:
+            return jsonify({"success": False})
 
 if __name__ == "__main__":
     app.run("10.0.0.250", 3333)
