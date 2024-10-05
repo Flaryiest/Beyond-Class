@@ -1,32 +1,23 @@
-function Dashboard() {
-    return <div className="dashboard">
-        <div className="main-content">
-            <header className="header">
-            <h1>Dashboard Overview</h1>
-            </header>
-            <div className="grid">
-            <div className="card large-card">
-                <h3>Main Panel</h3>
-                <p>Content of the main panel...</p>
-            </div>
+import React from 'react'
+import '../style/Dashboard.css'
 
-            <div className="card small-card">
-                <h3>Secondary Panel</h3>
-                <p>Content of the secondary panel...</p>
-            </div>
-
-            <div className="card small-card">
-                <h3>Panel 3</h3>
-                <p>Content of another panel...</p>
-            </div>
-
-            <div className="card small-card">
-                <h3>Panel 4</h3>
-                <p>More content here...</p>
-            </div>
-            </div>
+const Dashboard = () => {
+    return (
+        <div className="dashboard-container">
+        <div className="title-card">Dashboard</div>
+        <div className="daily">
+            <div className="rectangle-card-large">Today's Quizzes</div>
+            <div className="rectangle-card-small">Upcoming</div>
         </div>
-    </div>
-}
+        
+        <div className="square-boxes">
+            <div className="square-box">Daily Streak</div>
+            <div className="square-box">Quizzes Done</div>
+            <div className="square-box">Percentage of Questions answered right</div>
+        </div>
+        <div className="large-rectangle">Past Quizzes</div>
+        </div>
+    )
+    }
 
-export default Dashboard
+export default Dashboard;

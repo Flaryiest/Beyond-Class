@@ -4,7 +4,8 @@ import "./style/UserLayout.css"
 function UserLayout() {
     return <div className="user-layout">
         <UserSidebar/>
-        <Outlet/>
+        <Outlet />
+
     </div>
 
 }

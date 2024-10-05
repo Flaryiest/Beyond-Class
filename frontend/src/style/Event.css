@@ -1,0 +1,18 @@
+.event-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: "Poppins";
+    padding: 10 30px;
+}
+.event-header {
+    color: black;
+}
+.event-dates {
+    color: rgb(51, 51, 51);
+}
+.events-subheader {
+    color: rgb(51, 51, 51);
+}
+
