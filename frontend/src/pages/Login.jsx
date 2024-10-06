@@ -18,7 +18,7 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault()
         console.log('Form data submitted:', formData);
-        const response = await fetch("http://184.64.116.12:3333" + "/login", {
+        const response = await fetch("https://beyondclass.certificator.ca:3333" + "/login", {
             method: "POST",
             credentials: "include",
             headers: {

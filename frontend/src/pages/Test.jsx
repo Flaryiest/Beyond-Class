@@ -13,7 +13,7 @@ const TestPage = () => {
 
     useEffect(() => {
         const createTest = async () => {
-            const response = await fetch("http://184.64.116.12:3333" + "/generate/exam", {
+            const response = await fetch("https://beyondclass.certificator.ca:3333" + "/generate/exam", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -31,7 +31,7 @@ const TestPage = () => {
 
     useEffect(() => {
         const getTest = async () => {
-            const response = await fetch("http://184.64.116.12:3333" + "/get_courses", {
+            const response = await fetch("https://beyondclass.certificator.ca:3333" + "/get_courses", {
                 method: "POST",
                 credentials: "include",
                 headers: {
