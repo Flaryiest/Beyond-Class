@@ -63,3 +63,23 @@ table {
     border-spacing: 0;
 }
 
+
+input {
+    font-family: "Poppins";
+}
+
+.logo {
+    width: 30px;
+    height: 30px;
+}
+
+.logo-area {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.navLinks {
+    text-align: center;
+}

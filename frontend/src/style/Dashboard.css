@@ -7,41 +7,45 @@
     box-sizing: border-box;
     gap: 10px;
     font-family: "Poppins";
-    background-color: #f1f1f1;
+    background-color: #f8fff0;
 }
   
   .title-card {
     padding: 20px;
     text-align: center;
-    font-size: 24px;
+    font-size: 20px;
+    font-family: "Poppins-Bold";
     background-color: var(--main-background-color);
     color: var(--main-text-color);
+    box-shadow: 3px 4px 4px 2px rgb(228, 228, 228);
 }
   
 .daily {
     padding: 15px;
-    height: 200px;
+    height: 400px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
     gap: 50px;
 }
 
 .rectangle-card-large {
-    border-radius: 20px;
+    border-radius: 5px;
     grid-column: span 3;
     background-color: white;
-    padding: 10px;
+    padding: 20px 20px;
     margin: 0px 20px;
-    box-shadow: 3px 4px 4px 2px rgb(206, 206, 206);
+    box-shadow: 3px 4px 4px 2px rgb(228, 228, 228);
+    color: rgb(88, 88, 88);
 }
 
 .rectangle-card-small {
     grid-column: span 2;
-    border-radius: 20px;
+    border-radius: 5px;
     background-color: white;
-    padding: 10px;
+    padding: 20px 20px;
     margin: 0px 20px;
-    box-shadow: 3px 4px 4px 2px rgb(206, 206, 206);
+    box-shadow: 3px 4px 4px 2px rgb(228, 228, 228);
+    color: rgb(88, 88, 88);
 }
 
 
@@ -49,24 +53,29 @@
     display: flex;
     justify-content: space-between;
     gap: 40px;
+    padding: 40px 40px;
     margin: 20px 40px;
-}
-
-.square-box {
-    background-color: #c0c0c0;
-    flex: 1;
-    height: 200px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 16px;
-    border-radius: 20px;
     background-color: white;
+    border-radius: 10px;
     box-shadow: 2px 4px 4px 2px rgb(206, 206, 206);
 }
 
+.square-box {
+    flex: 1;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    padding: 0px 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    gap: 8px;
+    background-color: white;
+    box-shadow: 2px 4px 4px 2px rgb(206, 206, 206);
+    justify-content: space-between;
+    padding-bottom: 30px;
+}
+
 .large-rectangle {
-    background-color: #d0d0d0;
     padding: 20px;
     flex-grow: 1;
     margin: 40px;
@@ -75,3 +84,79 @@
     box-shadow: 3px 4px 4px 2px rgb(206, 206, 206);
 }
 
+  
+.stat-icon {
+    width: 50px;
+    height: 50px;
+}
+
+.stat-icon-container {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    margin-top: 10px;
+}
+
+.square-box-header {
+    font-weight: bold;
+    font-size: 30px;
+    padding-left: 10px;
+}
+
+.square-box-subheader {
+    font-size: 24px;
+    padding-left: 10px;
+    color:#3d3d3d;
+}
+
+.square-box-subtext {
+    font-size: 16px;
+    padding-left: 10px;
+    color: rgb(0, 86, 216);
+}
+
+.red {
+    background-color: rgb(255, 207, 207);
+}
+
+.yellow {
+    background-color: rgb(255, 233, 192);
+}
+
+.green {
+    background-color: rgb(208, 255, 208);
+}
+
+.red-icon {
+    background-color: rgb(255, 85, 85);
+}
+
+.yellow-icon {
+    background-color: rgb(255, 213, 134);
+}
+
+.green-icon {
+    background-color: rgb(127, 255, 127);
+}
+
+.card-header {
+    font-size: 24px;
+}
+
+.quiz-card {
+    width: 80%;
+    height: 40px;
+    padding: 10px 10px;
+    background-color: rgb(0, 204, 170);
+    border-radius: 10px;
+    border-color: rgb(0, 204, 170);
+    box-shadow: 1px 1px 3px 2px rgb(247, 247, 247);
+    border-style: solid;
+    border-width: 2px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

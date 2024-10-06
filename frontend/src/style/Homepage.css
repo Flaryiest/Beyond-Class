@@ -1,11 +1,10 @@
 body {
     overflow-x: hidden;
-    overflow-y: scroll;
-    }
+}
 
 .homepage {
     max-width: 100dvw;
-    height: 1100px;
+
     background-color: var(--main-background-color);
   }
 
