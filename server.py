@@ -1,8 +1,5 @@
-import os, json, psycopg2, time, random, uuid, hashlib, smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from math import ceil
-from flask import Flask, request, jsonify, make_response
+import os, json, psycopg2, random, hashlib
+from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
 from flask_cors import CORS
