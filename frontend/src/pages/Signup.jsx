@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 function Signup() {
     const navigate = useNavigate()
     const [error, setError] = useState(false)
-    const endpoint = "http://184.64.116.12:3333"
+    const endpoint = "https://beyondclass.certificator.ca:3333"
     const [formData, setFormData] = useState({
         username: '',
         password: '',

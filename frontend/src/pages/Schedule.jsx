@@ -26,7 +26,7 @@ const Schedule = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log('Form data submitted:', formData);
-        const response = await fetch("http://184.64.116.12:3333" +"/create/unit", {
+        const response = await fetch("https://beyondclass.certificator.ca:3333" +"/create/unit", {
             method: "POST",
             credentials: "include",
             headers: {

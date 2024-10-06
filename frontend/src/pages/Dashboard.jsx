@@ -18,7 +18,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         const getClasses = async () => {
-            const response = await fetch("http://184.64.116.12:3333"+ "/get_courses", {
+            const response = await fetch("https://beyondclass.certificator.ca:3333/"+ "/get_courses", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -32,7 +32,7 @@ const Dashboard = () => {
                 setClasses(["You Currently Have No Classes. Please Add One."])
             }
             else {
-                setClasses(classes)
+                setClasses(Object.keys(classes))
             }
         }
         getClasses()

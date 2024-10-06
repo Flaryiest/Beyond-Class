@@ -24,7 +24,7 @@ const Classes = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log('Form data submitted:', formData.class);
-        const response = await fetch("http://184.64.116.12:3333" + "/create/course", {
+        const response = await fetch("https://beyondclass.certificator.ca:3333" + "/create/course", {
             method: "POST",
             credentials: "include",
             headers: {  
