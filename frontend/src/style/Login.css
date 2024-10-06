@@ -5,7 +5,6 @@
     padding: 2rem;
     padding-top: 5rem;
     color: rgba(243, 244, 246, 1);
-    max-height: 94dvh;
 }
 
 .title {
@@ -14,6 +13,8 @@
     line-height: 2rem;
     font-weight: 700;
 }
+
+
 
 .form {
     margin-top: 1.5rem;
@@ -108,6 +109,7 @@
 .login-content, 
 .login-image {
     flex: 1;
-    max-height: 94dvh;
+    max-height: 91.6dvh;
 }
+
 

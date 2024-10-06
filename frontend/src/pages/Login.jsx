@@ -2,13 +2,14 @@ import "../style/Login.css"
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 function Login() {
+    const navigate = useNavigate()
     const [formData, setFormData] = useState({
         username: '',
         password: ''
     })
-    
+    const [error, setError] = useState(false)
     const handleChange = (e) => {
-        setFormData({
+        setFormData({   
         ...formData,
         [e.target.name]: e.target.value
         })
@@ -17,7 +18,7 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault()
         console.log('Form data submitted:', formData);
-        const response = await fetch("http://localhost:3000/api/", {
+        const response = await fetch("http://184.64.116.12:3333" + "/login", {
             method: "POST",
             credentials: "include",
             headers: {
@@ -25,6 +26,17 @@ function Login() {
             },
             body: JSON.stringify({username: formData.username, password: formData.password}),
         })
+        if (response.status == 200) {
+            const info = await response.json()
+            console.log(response, info)
+            if (info.success == false ) {
+                setError("Login failed. Please try again.")
+            }
+            else {
+                navigate("/user/" + formData.username)
+            }
+        }
+        setError("Login failed. Please try again.")
     }
 
     return <div className="login-page">
@@ -42,6 +54,7 @@ function Login() {
                         <a rel="noopener noreferrer" href="#">Forgot Password ?</a>
                     </div>
                 </div>  
+                {(error) && <div className="error-message">{error}</div>}
                 <button className="sign" type="submit">Login</button>
             </form>
                 

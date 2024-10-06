@@ -2,6 +2,7 @@
     display: flex;
     max-width: 100dvw;
     justify-content: space-between;
+    align-items: center;
     padding-left: 10dvw;
     padding-right: 10dvw;
     padding-top: 32px;

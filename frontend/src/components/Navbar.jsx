@@ -3,13 +3,13 @@ import { Link } from "react-router-dom"
 function NavBar() {
     return (
     <header className="navBar">
-        <div className="logo">
-            <Link to="/">Beyond Class</Link>
+        <div>
+            <Link to="/" className="logo-area">
+            <img src="/assets/Beyondclass-Logo.webp" className="logo"></img>
+            Beyond Class
+            </Link>
         </div>
         <ul className="navLinks">
-            <li>
-                <Link to="/demo">Demo</Link>
-            </li>
             <li>
                 <Link to="/login">Login</Link>
             </li>
