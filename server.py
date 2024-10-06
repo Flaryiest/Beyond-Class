@@ -6,10 +6,11 @@ from flask import Flask, request, jsonify, make_response
 from dotenv import load_dotenv
 from openai import OpenAI
 from flask_cors import CORS
+from datetime import datetime, timedelta
 
 load_dotenv() 
 
-EMAIL, PASSWORD = [os.environ.get(i) for i in ["EMAIL", "EMAIL_PASSWORD"]]
+'''EMAIL, PASSWORD = [os.environ.get(i) for i in ["EMAIL", "EMAIL_PASSWORD"]]
 
 def get_base(email):
     local_part, domain = email.split('@')
@@ -49,6 +50,17 @@ def send_email(recipient, key):
         return True
     except Exception: #there is a lot of exceptions without specific errors in this file, may be a - score for us (bad programming)
         return False
+'''
+
+def get_streak(l_date):
+    date = datetime.now()
+    p_date = date - timedelta(days=1)
+    if l_date == f"{date.day}_{date.month}_{date.year}":
+        return True, 0
+    elif l_date == f"{p_date.day}_{p_date.month}_{p_date.year}":
+        return True, 1
+    else:
+        return False, 0
 
 class Database:
     def __init__(self, table, DB_NAME="railway", DB_USER="postgres", DB_HOST="junction.proxy.rlwy.net", DB_PORT="42906"):
@@ -73,11 +85,20 @@ class Database:
         self.conn.commit()
 
     def insert_data(self, username, data):
+        data = json.dumps(data)
+        user_data = self.get_data(username)
+        streak = get_streak(user_data["latest_quiz"])
+        date = datetime.now()
+        if streak[0] == True:
+            user_data["streak"] += streak[1]
+            user_data["lastest_quiz"] = f"{date.day}_{date.month}_{date.year}"
+        else:
+            user_data["streak"] = 0
         with self.conn.cursor() as cur:
             cur.execute(f'''
                 INSERT INTO {self.table} (username, data) VALUES (%s, %s)
                 ON CONFLICT (username) DO UPDATE SET data = %s
-            ''', (username, json.dumps(data), json.dumps(data)))
+            ''', (username, data, data))
         self.conn.commit()
 
     def get_data(self, username):
@@ -136,7 +157,6 @@ class ChatGPT:
             )
             return response
         except Exception as e:
-            print(f"Error during API call: {e}")
             return None
 
     '''
@@ -166,21 +186,20 @@ class ChatGPT:
             return None
     '''
     
-    def generate_question(self, unit):
-        prompt = (
-                        'Create a challenging multiple choice question in the following json format {"question": <>, "answers": {1: "<answer A>", 2: "<answer B>", 3:"<answer C>", 4: "<answer D>"}, "correct": "<A, B, C, or D>"}. '
-                        + f"The following is the content to test: unit name: {unit['unit_name']}, topics to be tested for: {str(unit['unit_components'])}."
-                    )
+    def generate_question(self, unit, components):
+        while True:
+            prompt = (
+                            'Create a challenging multiple choice question in the following json format {"question": <>, "answers": {1: "<answer A>", 2: "<answer B>", 3:"<answer C>", 4: "<answer D>"}, "correct": "<A, B, C, or D>"}. '
+                            + f"The following is the content to test: unit name: {unit}, topics to be tested for: {components}."
+                        )
 
-        response = self.message([{"role": "user", "content": prompt}]).choices[0].message.content
-        
-        try:
-            return json.loads(response)
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
-            print(f"Response content: {response}")
-        
-        return None
+            response = self.message([{"role": "user", "content": prompt}]).choices[0].message.content
+            
+            try:
+                return json.loads(response)
+            except json.JSONDecodeError:
+                pass
+            
 
     def generate_exam(self, username, course):
         try:
@@ -188,7 +207,7 @@ class ChatGPT:
             quiz = []
             for unit in content["units"]:
                 for i in range(0, 5):
-                    quiz.append(self.generate_question(username, course, unit))
+                    quiz.append(self.generate_question(unit, str(content["units"][unit]['unit_components'])))
             return quiz
 
         except KeyError:
@@ -247,6 +266,25 @@ def get_courses():
 
     return jsonify(database.get_data(username)["courses"])
 
+@app.route("/get_stats", methods=["POST"])
+def get_stats():
+    """
+    Client JSON:
+    {
+        username: str # the username of the user
+        token:str # given token from login
+    }
+    """
+    data = request.get_json(force=True)
+    username = data["username"]
+    user_data = database.get_data(username)
+    '''
+    if not database.check_token(username, token):
+        return jsonify({"success": False, "reason": "invalid token"})'''
+
+    return jsonify({"correct": user_data["correct"], "solved": user_data["solved"], "streak": user_data["streak"]})
+
+
 @app.route("/n_users", methods=["GET"])
 def n_users():
     try:
@@ -266,8 +304,8 @@ def register():
     salt = hashlib.sha512(random.randbytes(64)).hexdigest()
     password = hashlib.sha256(bytes(password + salt, 'utf-8')).hexdigest()
 
-    if database.verify(username) and database.check_email(get_base(email)):
-        database.insert_data(username, {"courses": {}, "password": password, "salt": salt, "token": "", "email": email, "streak": 0, "solved": 0, "correct": 0})
+    if database.verify(username):
+        database.insert_data(username, {"courses": {}, "password": password, "salt": salt, "token": "", "email": email, "streak": 0, "solved": 0, "correct": 0, "latest_quiz": ""})
         return jsonify({"success": True})
     else:
         return jsonify({"success": False, "reason": "username or email already exists"})
@@ -311,56 +349,52 @@ def login():
             return jsonify({"success": False, "reason": "Incorrect password!"})
 
 @app.route("/create/course", methods=["POST"])
-def create_course(type):
+def create_course():
     data = request.get_json(force=True)
     username, course = [data[i] for i in ["username", "course"]]
     '''
     if not database.check_token(username, token):
         return jsonify({"success": False, "message": "Invalid token"}), 400'''
 
-    if type == "course":
-        user_data = database.get_data(username)
-        if course in list(user_data["courses"].keys()):
-            return {"success": False, "reason": "course already exists"}
-        else:
-            user_data["courses"][course] = {"units": {}}
-            database.insert_data(username, user_data)
+    user_data = database.get_data(username)
+    if course in list(user_data["courses"].keys()):
+        return {"success": False, "reason": "course already exists"}
+    else:
+        user_data["courses"][course] = {"units": {}, "quizzes": {}}
+        database.insert_data(username, user_data)
+        return jsonify({"success": True})
 
 @app.route("/create/unit", methods=["POST"])
-def create_unit(type):
+def create_unit():
     data = request.get_json(force=True)
 
-    dataKeys = ["username", "course", "unit", "lesson"]
-
-    for key in dataKeys:
-        if key not in data:
-            return jsonify({"success": False, "reason": "Invaild JSON data"})
-
-    username, course, unit, lesson = [data[i] for i in dataKeys]
+    username, course, unit, lesson = [data[i] for i in ["username", "course", "unit", "lesson"]]
     '''if not database.check_token(username, token):
         return jsonify({"success": False, "reason": "invalid token"})'''
-    if type == "course":
-        user_data = database.get_data(username)
-        if unit in list(user_data[course]["units"].keys()):
-            return {"success": False, "reason": "unit already exists"}
-        else:
-            user_data["courses"][course]["units"][unit] = {"unit_components": lesson}
-            return jsonify({"success": True})
+    user_data = database.get_data(username)
+    if unit in list(user_data["courses"][course]["units"].keys()):
+        return {"success": False, "reason": "unit already exists"}
+    else:
+        user_data["courses"][course]["units"][unit] = {"unit_components": lesson}
+        database.insert_data(username, user_data)
+        return jsonify({"success": True})
 
 @app.route("/generate/exam", methods=["POST"])
 def generate_exam():
-    try:
-        data = request.get_json(force=True)
-        username, course = [data[i] for i in ["username", "course"]]
-        '''
-        if not database.check_token(username, token):
-            return jsonify({"success": False, "reason": "invalid token"})'''
-        
-        chatgpt.generate_exam(username, course)
+    data = request.get_json(force=True)
+    username, course = [data[i] for i in ["username", "course"]]
+    '''
+    if not database.check_token(username, token):
+        return jsonify({"success": False, "reason": "invalid token"})'''
+    
+    user_data = database.get_data(username)
+    quiz = chatgpt.generate_exam(username, course)
+    quiz_n = f'Course exam #{len(list(user_data["courses"][course]["quizzes"].keys())) + 1}'
+    user_data["courses"][course]["quizzes"][quiz_n] = quiz
+    database.insert_data(username, user_data)
 
-        return jsonify({"success": True})
-    except Exception:
-        return jsonify({"success": False})
+    return jsonify({"success": True})
+
 
 @app.route("/generate/unit", methods=["POST"])
 def generate_unit():
@@ -370,12 +404,28 @@ def generate_unit():
         '''
         if not database.check_token(username, token):
             return jsonify({"success": False, "reason": "invalid token"})'''
-        
-        chatgpt.generate_unit_quiz(username, course, unit)
+        user_data = database.get_data(username)
+        quiz = chatgpt.generate_unit_quiz(username, course, unit)
+        quiz_n = f'Unit quiz #{len(list(user_data["courses"][course]["quizzes"].keys())) + 1}'
+        user_data["courses"][course]["quizzes"][quiz_n] = quiz
+        database.insert_data(username, user_data)
 
         return jsonify({"success": True})
     except Exception:
         return jsonify({"success": False})
+
+@app.route("/post_quiz", methods=["POST"])
+def post_quiz():
+    data = request.get_json(force=True)
+    username, correct = data["username"], data["correct"]
+
+    user_data = database.get_data(username)
+    user_data["correct"] += correct
+    user_data["solved"] += 1
+
+    database.insert_data(username, user_data)
+
+    return {"success": True}
 
 if __name__ == "__main__":
     app.run("10.0.0.250", 3333, threaded=True)
